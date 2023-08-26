@@ -9,19 +9,19 @@ GREEN='\033[0;32m'
 NC='\033[0m'
 
 function isRoot() {
-	if [ "${EUID}" -ne 0 ]; then
+	if [[ ${EUID} -ne 0 ]]; then
 		echo "You need to run this script as root"
 		exit 1
 	fi
 }
 
 function checkVirt() {
-	if [ "$(systemd-detect-virt)" == "openvz" ]; then
+	if [[ "$(systemd-detect-virt)" == "openvz" ]]; then
 		echo "OpenVZ is not supported"
 		exit 1
 	fi
 
-	if [ "$(systemd-detect-virt)" == "lxc" ]; then
+	if [[ "$(systemd-detect-virt)" == "lxc" ]]; then
 		echo "LXC is not supported (yet)."
 		echo "WireGuard can technically run in an LXC container,"
 		echo "but the kernel module has to be installed on the host,"
@@ -70,18 +70,18 @@ function checkOS() {
 function getHomeDirForClient() {
 	local CLIENT_NAME=$1
 
-	if [ -z "${CLIENT_NAME}" ]; then
+	if [[ -z ${CLIENT_NAME} ]]; then
 		echo "Error: getHomeDirForClient() requires a client name as argument"
 		exit 1
 	fi
 
 	# Home directory of the user, where the client configuration will be written
-	if [ -e "/home/${CLIENT_NAME}" ]; then
+	if [[ -e "/home/${CLIENT_NAME}" ]]; then
 		# if $1 is a user name
 		HOME_DIR="/home/${CLIENT_NAME}"
-	elif [ "${SUDO_USER}" ]; then
+	elif [[ -n ${SUDO_USER} ]]; then
 		# if not, use SUDO_USER
-		if [ "${SUDO_USER}" == "root" ]; then
+		if [[ ${SUDO_USER} == "root" ]]; then
 			# If running sudo as root
 			HOME_DIR="/root"
 		else
@@ -92,7 +92,7 @@ function getHomeDirForClient() {
 		HOME_DIR="/root"
 	fi
 
-	echo "$HOME_DIR"
+	echo "${HOME_DIR}"
 }
 
 function initialCheck() {
@@ -133,7 +133,7 @@ function installQuestions() {
 
 	# Generate random number within private ports range
 	RANDOM_PORT=$(shuf -i49152-65535 -n1)
-	until [[ ${SERVER_PORT} =~ ^[0-9]+$ ]] && [ "${SERVER_PORT}" -ge 1 ] && [ "${SERVER_PORT}" -le 65535 ]; do
+	until [[ ${SERVER_PORT} =~ ^[0-9]+$ ]] && [[ ${SERVER_PORT} -ge 1 ]] && [[ ${SERVER_PORT} -le 65535 ]]; do
 		read -rp "Server WireGuard port [1-65535]: " -e -i "${RANDOM_PORT}" SERVER_PORT
 	done
 
@@ -279,15 +279,15 @@ net.ipv6.conf.all.forwarding = 1" >/etc/sysctl.d/wg.conf
 }
 
 function newClient() {
-  until [[ "${ENDPOINT_TYPE}" == "ipv4" || "${ENDPOINT_TYPE}" == "ipv6" ]]; do
-      read -rp "ENDPOINT_TYPE(only support ipv4 or ipv6 input): " -e -i ipv4 ENDPOINT_TYPE
-  done
+	until [[ ${ENDPOINT_TYPE} == "ipv4" || ${ENDPOINT_TYPE} == "ipv6" ]]; do
+		read -rp "ENDPOINT_TYPE(only support ipv4 or ipv6 input): " -e -i ipv4 ENDPOINT_TYPE
+	done
 
 	if [[ ${ENDPOINT_TYPE} == "ipv4" ]]; then
-	  ENDPOINT="${SERVER_PUB_IPv4}:${SERVER_PORT}"
-  else
-    ENDPOINT="[${SERVER_PUB_IPv6}]:${SERVER_PORT}"
-  fi
+		ENDPOINT="${SERVER_PUB_IPv4}:${SERVER_PORT}"
+	else
+		ENDPOINT="[${SERVER_PUB_IPv6}]:${SERVER_PORT}"
+	fi
 
 	echo ""
 	echo "Client configuration"
@@ -318,11 +318,11 @@ function newClient() {
 		exit 1
 	fi
 
-	BASE_IP=$(echo "$SERVER_WG_IPV4" | awk -F '.' '{ print $1"."$2"."$3 }')
+	BASE_IP=$(echo "${SERVER_WG_IPV4}" | awk -F '.' '{ print $1"."$2"."$3 }')
 	until [[ ${IPV4_EXISTS} == '0' ]]; do
 		read -rp "Client WireGuard IPv4: ${BASE_IP}." -e -i "${DOT_IP}" DOT_IP
 		CLIENT_WG_IPV4="${BASE_IP}.${DOT_IP}"
-		IPV4_EXISTS=$(grep -c "$CLIENT_WG_IPV4/32" "/etc/wireguard/${SERVER_WG_NIC}.conf")
+		IPV4_EXISTS=$(grep -c "${CLIENT_WG_IPV4}/32" "/etc/wireguard/${SERVER_WG_NIC}.conf")
 
 		if [[ ${IPV4_EXISTS} != 0 ]]; then
 			echo ""
@@ -331,7 +331,7 @@ function newClient() {
 		fi
 	done
 
-	BASE_IP=$(echo "$SERVER_WG_IPV6" | awk -F '::' '{ print $1 }')
+	BASE_IP=$(echo "${SERVER_WG_IPV6}" | awk -F '::' '{ print $1 }')
 	until [[ ${IPV6_EXISTS} == '0' ]]; do
 		read -rp "Client WireGuard IPv6: ${BASE_IP}::" -e -i "${DOT_IP}" DOT_IP
 		CLIENT_WG_IPV6="${BASE_IP}::${DOT_IP}"
@@ -433,7 +433,7 @@ function uninstallWg() {
 	echo -e "${ORANGE}Please backup the /etc/wireguard directory if you want to keep your configuration files.\n${NC}"
 	read -rp "Do you really want to remove WireGuard? [y/n]: " -e REMOVE
 	REMOVE=${REMOVE:-n}
-	if [[ $REMOVE == 'y' ]]; then
+	if [[ ${REMOVE} == 'y' ]]; then
 		checkOS
 
 		systemctl stop "wg-quick@${SERVER_WG_NIC}"
